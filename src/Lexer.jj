@@ -1,0 +1,145 @@
+
+PARSER_BEGIN(GWBASICParser)
+
+public class GWBASICParser {
+    public static void main(String[] args) throws ParseException {
+        GWBASICParser parser = new GWBASICParser(System.in);
+        parser.Program();
+        System.out.println("Parsing completed successfully.");
+    }
+}
+
+PARSER_END(GWBASICParser)
+
+SKIP: {
+    " " | "\t" | "\r"
+}
+
+TOKEN: {
+    <NEWLINE: "\n">
+|   <NUMBER: (["0"-"9"])+>
+|   <STRING_LITERAL: "\"" (~["\""])* "\"">
+|   <TO: "TO">
+|   <STEP: "STEP">
+|   <FOR: "FOR">
+|   <NEXT: "NEXT">
+|   <IF: "IF">
+|   <THEN: "THEN">
+|   <ELSE: "ELSE">
+|   <GOTO: "GOTO">
+|   <GOSUB: "GOSUB">
+|   <RETURN: "RETURN">
+|   <DIM: "DIM">
+|   <END: "END">
+|   <REM: ("REM" (~["\n"])*) | ("'" (~["\n"])*)>
+|   <LPAREN: "(">
+|   <RPAREN: ")">
+|   <COMMA: ",">
+|   <SEMICOLON: ";">
+|   <EQUALS: "=">
+|   <OP: "+" | "-" | "*" | "/" | "<" | ">" | "<=" | ">=" | "<>" | ":" | "**">
+|   <IDENTIFIER: (<LETTER>)+>
+|   <LETTER: ["A"-"Z","a"-"z"]>
+}
+
+
+
+void Program():
+{}
+{
+    (Line())* <EOF>
+}
+
+void Line():
+{}
+{
+    <NUMBER> Statement() <NEWLINE>
+}
+
+void Statement():
+{}
+{
+    PrintStatement()
+|   InputStatement()
+|   ForStatement()
+|   NextStatement()
+|   IfStatement()
+|   GotoStatement()
+|   GosubStatement()
+|   ReturnStatement()
+|   DimStatement()
+|   EndStatement()
+|   RemStatement()
+}
+
+void PrintStatement():
+{}
+{
+    <PRINT> (Expression() ("," | ";"))*
+}
+
+void InputStatement():
+{}
+{
+    <INPUT> <STRING_LITERAL> <IDENTIFIER>
+}
+
+void ForStatement():
+{}
+{
+    <FOR> <IDENTIFIER> "=" Expression() <TO> Expression() (<STEP> Expression())?
+}
+
+void NextStatement():
+{}
+{
+    <NEXT> <IDENTIFIER>
+}
+
+void IfStatement():
+{}
+{
+    <IF> Expression() <THEN> Statement() (<ELSE> Statement())?
+}
+
+void GotoStatement():
+{}
+{
+    <GOTO> <NUMBER>
+}
+
+void GosubStatement():
+{}
+{
+    <GOSUB> <NUMBER>
+}
+
+void ReturnStatement():
+{}
+{
+    <RETURN>
+}
+
+void DimStatement():
+{}
+{
+    <DIM> <IDENTIFIER> "(" <NUMBER> ")"
+}
+
+void EndStatement():
+{}
+{
+    <END>
+}
+
+void RemStatement():
+{}
+{
+    <REM>
+}
+
+void Expression():
+{}
+{
+    <NUMBER> | <IDENTIFIER> | <STRING_LITERAL> | "(" Expression() ")" ( <OP> Expression() )*
+}

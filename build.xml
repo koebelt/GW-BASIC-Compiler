@@ -1,0 +1,51 @@
+<project name="GW-Basic Compiler" basedir="." default="compile">
+    <property name="src.dir" value="src"/>
+    <property name="build.dir" value="build"/>
+    <property name="lib.dir" value="lib"/>
+    <property name="javacc.jar" value="${lib.dir}/javacc.jar"/>
+    <property name="generated.dir" value="${build.dir}/generated"/>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+
+    <target name="init">
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${generated.dir}"/>
+    </target>
+
+    <target name="javacc" depends="init">
+        <javacc target="${src.dir}/Lexer.jj" outputdirectory="${generated.dir}" javacchome="${lib.dir}"/>
+    </target>
+
+    <target name="compile" depends="javacc">
+    <javac srcdir="${src.dir}" destdir="${build.dir}">
+        <src path="${generated.dir}"/>
+        <classpath>
+            <pathelement path="${javacc.jar}"/>
+        </classpath>
+    </javac>
+</target>
+
+
+    <target name="jar" depends="compile">
+        <mkdir dir="${build.dir}/lib"/>
+        <jar destfile="${build.dir}/lib/GW-Basic_Compiler.jar" basedir="${build.dir}">
+            <manifest>
+                <attribute name="Main-Class" value="Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="run" depends="compile">
+        <java classname="Main" fork="true" failonerror="true">
+            <classpath>
+                <pathelement path="${build.dir}"/>
+                <pathelement path="${javacc.jar}"/>
+            </classpath>
+            <arg value="${file}"/>
+        </java>
+    </target>
+
+    <target name="all" depends="clean, jar, run"/>
+</project>
