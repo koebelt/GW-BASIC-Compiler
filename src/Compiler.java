@@ -6,7 +6,7 @@ public class Compiler {
 
         Token token;
         do {
-            token = parser.getNextToken();
+            token = GWBASICParser.getNextToken();
             System.out.println(GWBASICParserConstants.tokenImage[token.kind] + " " + token.image);
         } while (token.kind != GWBASICParserConstants.EOF);
     }

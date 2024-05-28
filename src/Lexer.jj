@@ -59,9 +59,7 @@ void Line():
 void Statement():
 {}
 {
-    PrintStatement()
-|   InputStatement()
-|   ForStatement()
+    ForStatement()
 |   NextStatement()
 |   IfStatement()
 |   GotoStatement()
@@ -72,17 +70,6 @@ void Statement():
 |   RemStatement()
 }
 
-void PrintStatement():
-{}
-{
-    <PRINT> (Expression() ("," | ";"))*
-}
-
-void InputStatement():
-{}
-{
-    <INPUT> <STRING_LITERAL> <IDENTIFIER>
-}
 
 void ForStatement():
 {}
