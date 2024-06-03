@@ -14,19 +14,22 @@
         <mkdir dir="${generated.dir}"/>
     </target>
 
-    <target name="javacc" depends="init">
-        <javacc target="${src.dir}/Lexer.jj" outputdirectory="${generated.dir}" javacchome="${lib.dir}"/>
+    <target name="jjtree" depends="init">
+        <jjtree target="${src.dir}/Lexer.jjt" outputdirectory="${generated.dir}" javacchome="${lib.dir}"/>
+    </target>
+
+    <target name="javacc" depends="jjtree">
+        <javacc target="${generated.dir}/Lexer.jj" outputdirectory="${generated.dir}" javacchome="${lib.dir}"/>
     </target>
 
     <target name="compile" depends="javacc">
-    <javac srcdir="${src.dir}" destdir="${build.dir}">
-        <src path="${generated.dir}"/>
-        <classpath>
-            <pathelement path="${javacc.jar}"/>
-        </classpath>
-    </javac>
-</target>
-
+        <javac srcdir="${src.dir}" destdir="${build.dir}">
+            <src path="${generated.dir}"/>
+            <classpath>
+                <pathelement path="${javacc.jar}"/>
+            </classpath>
+        </javac>
+    </target>
 
     <target name="jar" depends="compile">
         <mkdir dir="${build.dir}/lib"/>

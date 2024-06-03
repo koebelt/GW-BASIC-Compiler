@@ -1,0 +1,180 @@
+options {
+    STATIC = false;
+    LOOKAHEAD = 2;
+}
+
+PARSER_BEGIN(GWBasicParser)
+
+public class GWBasicParser {
+    public static void main(String[] args) throws ParseException {
+        GWBasicParser parser = new GWBasicParser(System.in);
+        SimpleNode root = parser.Program();
+        root.dump("");
+        System.out.println("Parsing completed successfully.");
+    }
+}
+
+PARSER_END(GWBasicParser)
+
+SKIP : {
+    " " | "\t" | "\r" | "\n"
+}
+
+TOKEN : {
+    < NUMBER: (["0"-"9"])+ >
+  | < STRING: "\"" (~["\""])* "\"" >
+  | < ASSIGN: "=" >
+  | < PLUS: "+" >
+  | < MINUS: "-" >
+  | < MULTIPLY: "*" >
+  | < DIVIDE: "/" >
+  | < MOD: "%" >
+  | < POWER: "**" >
+  | < LT: "<" >
+  | < GT: ">" >
+  | < EQ: "==" >
+  | < NEQ: "<>" >
+  | < LTE: "<=" >
+  | < GTE: ">=" >
+  | < LEFTPAREN: "(" >
+  | < RIGHTPAREN: ")" >
+  | < COMMA: "," >
+  | < DIM: "DIM" >
+  | < GOTO: "GOTO" >
+  | < IF: "IF" >
+  | < THEN: "THEN" >
+  | < ELSE: "ELSE" >
+  | < FOR: "FOR" >
+  | < TO: "TO" >
+  | < STEP: "STEP" >
+  | < NEXT: "NEXT" >
+  | < WHILE: "WHILE" >
+  | < WEND: "WEND" >
+  | < GOSUB: "GOSUB" >
+  | < RETURN: "RETURN" >
+  | < STOP: "STOP" >
+  | < REM: "REM" (~["\n","\r"])* >
+  | < PRINT: "PRINT" >
+  | < INPUT: "INPUT" >
+  | < IDENTIFIER: (<LETTER>)+ (["0"-"9","A"-"Z","a"-"z"])* >
+  | < LETTER: ["A"-"Z","a"-"z"] >
+  | < EOL: "\n" | "\r" | "\r\n" >
+}
+
+SimpleNode Program() #Program : {}
+{
+    ( Line() )* <EOF> { return jjtThis; }
+}
+
+void Line() #Line : {}
+{
+    <NUMBER> Statement() <EOL>
+}
+
+void Statement() #Statement : {}
+{
+    (
+        Assignment()
+      | DimStatement()
+      | GotoStatement()
+      | IfStatement()
+      | ForStatement()
+      | WhileStatement()
+      | GosubStatement()
+      | ReturnStatement()
+      | StopStatement()
+      | PrintStatement()
+      | InputStatement()
+      | RemStatement()
+    )
+}
+
+void Assignment() #Assignment : {}
+{
+    <IDENTIFIER> <ASSIGN> Expression()
+}
+
+void DimStatement() #DimStatement : {}
+{
+    <DIM> <IDENTIFIER> <LEFTPAREN> <NUMBER> <RIGHTPAREN>
+}
+
+void GotoStatement() #GotoStatement : {}
+{
+    <GOTO> <NUMBER>
+}
+
+void IfStatement() #IfStatement : {}
+{
+    <IF> Condition() <THEN> Statement() (<ELSE> Statement())?
+}
+
+void ForStatement() #ForStatement : {}
+{
+    <FOR> <IDENTIFIER> <ASSIGN> Expression() <TO> Expression() (<STEP> Expression())? <NEXT> <IDENTIFIER>
+}
+
+void WhileStatement() #WhileStatement : {}
+{
+    <WHILE> Condition() <WEND>
+}
+
+void GosubStatement() #GosubStatement : {}
+{
+    <GOSUB> <NUMBER>
+}
+
+void ReturnStatement() #ReturnStatement : {}
+{
+    <RETURN>
+}
+
+void StopStatement() #StopStatement : {}
+{
+    <STOP>
+}
+
+void PrintStatement() #PrintStatement : {}
+{
+    <PRINT> Expression()
+}
+
+void InputStatement() #InputStatement : {}
+{
+    <INPUT> <IDENTIFIER>
+}
+
+void RemStatement() #RemStatement : {}
+{
+    <REM>
+}
+
+void Condition() #Condition : {}
+{
+    Expression() ComparisonOperator() Expression()
+}
+
+void ComparisonOperator() #ComparisonOperator : {}
+{
+    <LT> | <GT> | <EQ> | <NEQ> | <LTE> | <GTE>
+}
+
+void Expression() #Expression : {}
+{
+    Term() ( ( <PLUS> | <MINUS> ) Term() )*
+}
+
+void Term() #Term : {}
+{
+    Factor() ( ( <MULTIPLY> | <DIVIDE> | <MOD> ) Factor() )*
+}
+
+void Factor() #Factor : {}
+{
+    Base() ( <POWER> Base() )*
+}
+
+void Base() #Base : {}
+{
+    <NUMBER> | <IDENTIFIER> | <STRING> | <LEFTPAREN> Expression() <RIGHTPAREN>
+}
