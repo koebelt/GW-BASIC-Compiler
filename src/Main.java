@@ -11,26 +11,31 @@ public class Main {
             FileInputStream in = new FileInputStream(args[0]);
             GWBasicParser parser = new GWBasicParser(in);
             SimpleNode root = parser.Program();
-            root.dump(""); // Print the AST
-            generatePCL(root);
-            
+            dumpAST(root, 0);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
     public static void generatePCL(SimpleNode root) {
-        // Placeholder for PCL generation logic
-        System.out.println("Generating PCL code...");
-        // Example: Traverse the AST and generate PCL code
         traverse(root);
     }
 
     public static void traverse(SimpleNode node) {
-        // Example: Print node information and recursively traverse children
-        System.out.println("Node: " + node + " Value: " + node.jjtGetValue());
         for (int i = 0; i < node.jjtGetNumChildren(); i++) {
             traverse((SimpleNode) node.jjtGetChild(i));
+        }
+    }
+
+    public static void dumpAST(SimpleNode node, int indentLevel) {
+        String indentation = "";
+
+        for (int i = 0; i < indentLevel; i++) {
+            indentation += " ";
+        }
+        System.out.println(indentation + node + (node.jjtGetValue() != null ? " = " + node.jjtGetValue() : ""));
+        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
+            dumpAST((SimpleNode) node.jjtGetChild(i), indentLevel + 1);
         }
     }
 }
