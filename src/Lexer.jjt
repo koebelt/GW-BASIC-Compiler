@@ -66,9 +66,9 @@ SimpleNode Program() #Program : {}
     (( Line() )*) <EOF> { return jjtThis; }
 }
 
-void Line() #Line : {}
+void Line() #Line : {Token t;}
 {
-    <NUMBER> Statement() (<EOL> | <EOF>)?
+    t=<NUMBER> Statement() (<EOL> | <EOF>)? { jjtThis.jjtSetValue(t.image); }
 }
 
 void Statement() #Statement : {}
@@ -91,9 +91,11 @@ void Statement() #Statement : {}
     )
 }
 
-void Assignment() #Assignment : {}
+void Assignment() #Assignment : {
+    Token t = new Token();
+}
 {
-    <IDENTIFIER> <EQ> Expression()
+    t=<IDENTIFIER> <EQ> Expression() { jjtThis.jjtSetValue(t.image); }
 }
 
 void DimStatement() #DimStatement : {}
@@ -101,9 +103,11 @@ void DimStatement() #DimStatement : {}
     <DIM> <IDENTIFIER> <LEFTPAREN> <NUMBER> <RIGHTPAREN>
 }
 
-void GotoStatement() #GotoStatement : {}
+void GotoStatement() #GotoStatement : {
+    Token t = new Token();
+}
 {
-    <GOTO> <NUMBER>
+    <GOTO> t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
 }
 
 void IfStatement() #IfStatement : {}
@@ -111,14 +115,18 @@ void IfStatement() #IfStatement : {}
     <IF> Condition() <THEN> Statement() (<ELSE> Statement())?
 }
 
-void ForStatement() #ForStatement : {}
+void ForStatement() #ForStatement : {
+    Token t = new Token();
+}
 {
-    <FOR> <IDENTIFIER> <EQ> Expression() <TO> Expression() (<STEP> Expression())?
+    <FOR> t=<IDENTIFIER> <EQ> Expression() <TO> Expression() (<STEP> Expression())? { jjtThis.jjtSetValue(t.image); }
 }
 
-void NextStatement() #NextStatement : {}
+void NextStatement() #NextStatement : {
+    Token t = new Token();
+}
 {
-    <NEXT> <IDENTIFIER>
+    <NEXT> t=<IDENTIFIER> { jjtThis.jjtSetValue(t.image); }
 }
 
 void WhileStatement() #WhileStatement : {}
@@ -126,9 +134,11 @@ void WhileStatement() #WhileStatement : {}
     <WHILE> Condition() <WEND>
 }
 
-void GosubStatement() #GosubStatement : {}
+void GosubStatement() #GosubStatement : {
+    Token t = new Token();
+}
 {
-    <GOSUB> <NUMBER>
+    <GOSUB> t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
 }
 
 void ReturnStatement() #ReturnStatement : {}
@@ -141,14 +151,25 @@ void StopStatement() #StopStatement : {}
     <STOP>
 }
 
-void PrintStatement() #PrintStatement : {}
+void PrintStatement() #PrintStatement : {
+    Token t = new Token();
+}
 {
-    <PRINT> ( Expression() | <STRING> | <COMMA> )*
+    <PRINT> (t=<STRING> | Expression()) (PrintItem())* { jjtThis.jjtSetValue(t.image); }
 }
 
-void InputStatement() #InputStatement : {}
+void PrintItem() #PrintItem : {
+    Token t = new Token();
+}
 {
-    <INPUT> <IDENTIFIER>
+    <COMMA> (t=<STRING> | Expression()) { jjtThis.jjtSetValue(t.image); }
+}
+
+void InputStatement() #InputStatement : {
+    Token t = new Token();
+}
+{
+    <INPUT> (<STRING> <COMMA>)? t=<IDENTIFIER> { jjtThis.jjtSetValue(t.image); }
 }
 
 void RemStatement() #RemStatement : {}
@@ -166,27 +187,38 @@ void Condition() #Condition : {}
     Expression() ComparisonOperator() Expression()
 }
 
-void ComparisonOperator() #ComparisonOperator : {}
+void ComparisonOperator() #ComparisonOperator : {
+    Token t = new Token();
+}
 {
-    <LT> | <GT> | <EQ> | <NEQ> | <LTE> | <GTE>
+    (t=<LT> | t=<GT> | t=<EQ> | t=<NEQ> | t=<LTE> | t=<GTE>) { jjtThis.jjtSetValue(t.image); }
+
 }
 
-void Expression() #Expression : {}
+void Expression() #Expression : {
+    Token t = new Token();
+}
 {
-    Term() ( ( <PLUS> | <MINUS> ) Term() )*
+    Term() ( (t=<PLUS> | t=<MINUS>) Term() )* { jjtThis.jjtSetValue(t.image); }
 }
 
-void Term() #Term : {}
+void Term() #Term : {
+    Token t = new Token();
+}
 {
-    Factor() ( ( <MULTIPLY> | <DIVIDE> | <MOD> ) Factor() )*
+    Factor() ( (t=<MULTIPLY> | t=<DIVIDE> | t=<MOD>) Factor() )* { jjtThis.jjtSetValue(t.image); }
 }
 
-void Factor() #Factor : {}
+void Factor() #Factor : {
+    Token t = new Token();
+}
 {
-    Base() ( <POWER> Base() )*
+    Base() ( (t=<POWER>) Base() )* { jjtThis.jjtSetValue(t.image); }
 }
 
-void Base() #Base : {}
+void Base() #Base : {
+    Token t = new Token();
+}
 {
-    <NUMBER> | <IDENTIFIER> | <LEFTPAREN> Expression() <RIGHTPAREN>
+    (t=<NUMBER> | t=<IDENTIFIER> | <LEFTPAREN> Expression() <RIGHTPAREN>) { jjtThis.jjtSetValue(t.image); }
 }
