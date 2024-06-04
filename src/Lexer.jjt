@@ -12,12 +12,30 @@ public class GWBasicParser {
         root.dump("");
         System.out.println("Parsing completed successfully.");
     }
+
+    public static void traverse(SimpleNode node) {
+        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
+            traverse((SimpleNode) node.jjtGetChild(i));
+        }
+    }
+
+    public static void dumpAST(SimpleNode node, int indentLevel) {
+        String indentation = "";
+
+        for (int i = 0; i < indentLevel; i++) {
+            indentation += " ";
+        }
+        System.out.println(indentation + node + (node.jjtGetValue() != null ? " = " + node.jjtGetValue() : ""));
+        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
+            dumpAST((SimpleNode) node.jjtGetChild(i), indentLevel + 1);
+        }
+    }
 }
 
 PARSER_END(GWBasicParser)
 
 SKIP : {
-    " " | "\t"
+    " " | "\t" | "\n" | "\r" | "\r\n"
 }
 
 TOKEN : {
@@ -63,7 +81,7 @@ TOKEN : {
 
 SimpleNode Program() #Program : {}
 {
-    (( Line() )*) <EOF> { return jjtThis; }
+    (( Line() )* ) <EOF> { return jjtThis; }
 }
 
 void Line() #Line : {Token t;}
