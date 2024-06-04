@@ -17,13 +17,12 @@ public class GWBasicParser {
 PARSER_END(GWBasicParser)
 
 SKIP : {
-    " " | "\t" | "\r" | "\n"
+    " " | "\t"
 }
 
 TOKEN : {
     < NUMBER: (["0"-"9"])+ >
   | < STRING: "\"" (~["\""])* "\"" >
-  | < ASSIGN: "=" >
   | < PLUS: "+" >
   | < MINUS: "-" >
   | < MULTIPLY: "*" >
@@ -32,7 +31,7 @@ TOKEN : {
   | < POWER: "**" >
   | < LT: "<" >
   | < GT: ">" >
-  | < EQ: "==" >
+  | < EQ: "=" >
   | < NEQ: "<>" >
   | < LTE: "<=" >
   | < GTE: ">=" >
@@ -42,6 +41,7 @@ TOKEN : {
   | < DIM: "DIM" >
   | < GOTO: "GOTO" >
   | < IF: "IF" >
+  | < END: "END" >
   | < THEN: "THEN" >
   | < ELSE: "ELSE" >
   | < FOR: "FOR" >
@@ -63,35 +63,37 @@ TOKEN : {
 
 SimpleNode Program() #Program : {}
 {
-    ( Line() )* <EOF> { return jjtThis; }
+    (( Line() )*) <EOF> { return jjtThis; }
 }
 
 void Line() #Line : {}
 {
-    <NUMBER> Statement() <EOL>
+    <NUMBER> Statement() (<EOL> | <EOF>)?
 }
 
 void Statement() #Statement : {}
 {
     (
-        Assignment()
-      | DimStatement()
-      | GotoStatement()
-      | IfStatement()
-      | ForStatement()
-      | WhileStatement()
-      | GosubStatement()
-      | ReturnStatement()
-      | StopStatement()
-      | PrintStatement()
-      | InputStatement()
-      | RemStatement()
+      Assignment()
+    | DimStatement()
+    | GotoStatement()
+    | IfStatement()
+    | ForStatement()
+    | NextStatement()
+    | WhileStatement()
+    | GosubStatement()
+    | ReturnStatement()
+    | StopStatement()
+    | PrintStatement()
+    | InputStatement()
+    | RemStatement()
+    | EndStatement()
     )
 }
 
 void Assignment() #Assignment : {}
 {
-    <IDENTIFIER> <ASSIGN> Expression()
+    <IDENTIFIER> <EQ> Expression()
 }
 
 void DimStatement() #DimStatement : {}
@@ -111,7 +113,12 @@ void IfStatement() #IfStatement : {}
 
 void ForStatement() #ForStatement : {}
 {
-    <FOR> <IDENTIFIER> <ASSIGN> Expression() <TO> Expression() (<STEP> Expression())? <NEXT> <IDENTIFIER>
+    <FOR> <IDENTIFIER> <EQ> Expression() <TO> Expression() (<STEP> Expression())?
+}
+
+void NextStatement() #NextStatement : {}
+{
+    <NEXT> <IDENTIFIER>
 }
 
 void WhileStatement() #WhileStatement : {}
@@ -136,7 +143,7 @@ void StopStatement() #StopStatement : {}
 
 void PrintStatement() #PrintStatement : {}
 {
-    <PRINT> Expression()
+    <PRINT> ( Expression() | <STRING> | <COMMA> )*
 }
 
 void InputStatement() #InputStatement : {}
@@ -147,6 +154,11 @@ void InputStatement() #InputStatement : {}
 void RemStatement() #RemStatement : {}
 {
     <REM>
+}
+
+void EndStatement() #EndStatement : {}
+{
+    <END>
 }
 
 void Condition() #Condition : {}
@@ -176,5 +188,5 @@ void Factor() #Factor : {}
 
 void Base() #Base : {}
 {
-    <NUMBER> | <IDENTIFIER> | <STRING> | <LEFTPAREN> Expression() <RIGHTPAREN>
+    <NUMBER> | <IDENTIFIER> | <LEFTPAREN> Expression() <RIGHTPAREN>
 }

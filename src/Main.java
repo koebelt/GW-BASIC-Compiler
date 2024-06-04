@@ -28,7 +28,7 @@ public class Main {
 
     public static void traverse(SimpleNode node) {
         // Example: Print node information and recursively traverse children
-        System.out.println(node.toString());
+        System.out.println("Node: " + node + " Value: " + node.jjtGetValue());
         for (int i = 0; i < node.jjtGetNumChildren(); i++) {
             traverse((SimpleNode) node.jjtGetChild(i));
         }
