@@ -50,5 +50,15 @@
         </java>
     </target>
 
+    <target name="test" depends="run">
+        <exec executable="gcc">
+            <arg value="output.c"/>
+            <arg value="-o"/>
+            <arg value="output"/>
+            <arg value="-g"/>
+        </exec>
+    </target>
+
+
     <target name="all" depends="clean, jar, run"/>
 </project>

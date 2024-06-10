@@ -13,15 +13,13 @@ public class Main {
             SimpleNode root = parser.Program();
             GWBasicParser.dumpAST(root, 0);
             SyntaxChecker.checkSyntax(root, root);
+            PCLCompiler compiler = new PCLCompiler("output.c");
+            compiler.generatePCL(root);
+            compiler.writePCL();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    
-    public static void generatePCL(SimpleNode root) {
-    }
-
-    
 
 }
 

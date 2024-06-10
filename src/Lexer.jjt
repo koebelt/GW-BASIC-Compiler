@@ -30,6 +30,14 @@ public class GWBasicParser {
             dumpAST((SimpleNode) node.jjtGetChild(i), indentLevel + 1);
         }
     }
+
+    public static int getLineNumber(SimpleNode node) {
+        if (node.toString().equals("Line")) {
+            return Integer.parseInt(node.value.toString());
+        } else {
+            return getLineNumber((SimpleNode) node.jjtGetParent());
+        }
+    }
 }
 
 PARSER_END(GWBasicParser)
@@ -39,7 +47,7 @@ SKIP : {
 }
 
 TOKEN : {
-    < NUMBER: (["0"-"9"])+ >
+    < NUMBER: ("-")?(["0"-"9"])+ >
   | < STRING: "\"" (~["\""])* "\"" >
   | < PLUS: "+" >
   | < MINUS: "-" >
@@ -75,6 +83,7 @@ TOKEN : {
   | < PRINT: "PRINT" >
   | < INPUT: "INPUT" >
   | < IDENTIFIER: (<LETTER>)+ (["0"-"9","A"-"Z","a"-"z"])* >
+  | < VARIABLE: (<IDENTIFIER>) ("%" | "$" | "#") >
   | < LETTER: ["A"-"Z","a"-"z"] >
   | < EOL: "\n" | "\r" | "\r\n" >
 }
@@ -99,33 +108,33 @@ void Statement() #Statement : {}
     | ForStatement()
     | NextStatement()
     | WhileStatement()
+    | WendStatement()
     | GosubStatement()
     | ReturnStatement()
     | StopStatement()
     | PrintStatement()
     | InputStatement()
     | RemStatement()
+    | FunctionCallStatement()
     | EndStatement()
     )
 }
 
 void Assignment() #Assignment : {
-    Token t = new Token();
 }
 {
-    t=<IDENTIFIER> <EQ> Expression() { jjtThis.jjtSetValue(t.image); }
+    VariableAccess() <EQ> Expression()
 }
 
 void DimStatement() #DimStatement : {}
 {
-    <DIM> <IDENTIFIER> <LEFTPAREN> <NUMBER> <RIGHTPAREN>
+    <DIM> ArrayCall()
 }
 
 void GotoStatement() #GotoStatement : {
-    Token t = new Token();
 }
 {
-    <GOTO> t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
+    <GOTO> Number()
 }
 
 void IfStatement() #IfStatement : {}
@@ -134,29 +143,31 @@ void IfStatement() #IfStatement : {}
 }
 
 void ForStatement() #ForStatement : {
-    Token t = new Token();
 }
 {
-    <FOR> t=<IDENTIFIER> <EQ> Expression() <TO> Expression() (<STEP> Expression())? { jjtThis.jjtSetValue(t.image); }
+    <FOR> Assignment() <TO> Expression() (<STEP> Expression())?
 }
 
 void NextStatement() #NextStatement : {
-    Token t = new Token();
 }
 {
-    <NEXT> t=<IDENTIFIER> { jjtThis.jjtSetValue(t.image); }
+    <NEXT> Variable()
 }
 
 void WhileStatement() #WhileStatement : {}
 {
-    <WHILE> Condition() <WEND>
+    <WHILE> Condition()
+}
+
+void WendStatement() #WendStatement : {}
+{
+    <WEND>
 }
 
 void GosubStatement() #GosubStatement : {
-    Token t = new Token();
 }
 {
-    <GOSUB> t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
+    <GOSUB> Number()
 }
 
 void ReturnStatement() #ReturnStatement : {}
@@ -170,24 +181,28 @@ void StopStatement() #StopStatement : {}
 }
 
 void PrintStatement() #PrintStatement : {
-    Token t = new Token();
 }
 {
-    <PRINT> (t=<STRING> | Expression()) (PrintItem())* { jjtThis.jjtSetValue(t.image); }
+    <PRINT> (String() | Expression()) (PrintItem())*
 }
 
 void PrintItem() #PrintItem : {
-    Token t = new Token();
 }
 {
-    <COMMA> (t=<STRING> | Expression()) { jjtThis.jjtSetValue(t.image); }
+    <COMMA> (String() | Expression())
 }
 
 void InputStatement() #InputStatement : {
+}
+{
+    <INPUT> (String() <COMMA>)? VariableAccess()
+}
+
+void FunctionCallStatement() #FunctionCallStatement : {
     Token t = new Token();
 }
 {
-    <INPUT> (<STRING> <COMMA>)? t=<IDENTIFIER> { jjtThis.jjtSetValue(t.image); }
+    t=<IDENTIFIER> <LEFTPAREN> (Expression() ( <COMMA> Expression() )* )? <RIGHTPAREN> { jjtThis.jjtSetValue(t.image); }
 }
 
 void RemStatement() #RemStatement : {}
@@ -213,6 +228,25 @@ void ComparisonOperator() #ComparisonOperator : {
 
 }
 
+void VariableAccess() #VariableAccess : {
+}
+{
+    (Variable() | ArrayCall())
+}
+
+void ArrayCall() #ArrayCall : {
+}
+{
+    Variable() <LEFTPAREN> Expression() <RIGHTPAREN>
+}
+
+void Variable() #Variable : {
+    Token t = new Token();
+}
+{
+    t=<VARIABLE> { jjtThis.jjtSetValue(t.image); }
+}
+
 void Expression() #Expression : {
     Token t = new Token();
 }
@@ -235,8 +269,21 @@ void Factor() #Factor : {
 }
 
 void Base() #Base : {
+}
+{
+    (Number() | String() | FunctionCallStatement() | VariableAccess() | <LEFTPAREN> Expression() <RIGHTPAREN>)
+}
+
+void Number() #Number : {
     Token t = new Token();
 }
 {
-    (t=<NUMBER> | t=<IDENTIFIER> | <LEFTPAREN> Expression() <RIGHTPAREN>) { jjtThis.jjtSetValue(t.image); }
+    t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
+}
+
+void String() #String : {
+    Token t = new Token();
+}
+{
+    t=<STRING> { jjtThis.jjtSetValue(t.image); }
 }
