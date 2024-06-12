@@ -53,6 +53,7 @@ public class PCLCompiler {
             myWriter.write("double my_sdbl(const char* str) { return atof(str); }\n\n");
 
             for (String variable : globalVariables.values()) {
+                // System.err.println("Variable: " + variable + "key: " + globalVariables.keySet());
                 myWriter.write(variable + "\n");
             }
                 myWriter.write("\n");
@@ -75,7 +76,7 @@ public class PCLCompiler {
     }
 
     String generatePCL(SimpleNode node) {
-        System.err.println(node.toString());
+        // System.err.println(node.toString());
         switch (node.toString()) {
             case "Program":
                 this.pcl.add("int main() {");
@@ -164,9 +165,11 @@ public class PCLCompiler {
                 }
                 return getVariableNameExtentionString(node);
             case "Assignment":
-                if (globalVariables.containsKey(generatePCL((SimpleNode) node.jjtGetChild(0))))
+                String variableName = generatePCL((SimpleNode) node.jjtGetChild(0)).split("\\[") != null ? generatePCL((SimpleNode) node.jjtGetChild(0)).split("\\[")[0] : generatePCL((SimpleNode) node.jjtGetChild(0));
+                if (globalVariables.containsKey(variableName))
                     return  generatePCL((SimpleNode) node.jjtGetChild(0)) + " = " + generatePCL((SimpleNode) node.jjtGetChild(1));
                 variableType = getChildVariableType(node);
+                System.err.println("Variable type: " + variableType + " Variable: " + variableName);
                 switch (variableType) {
                     case INT:
                         return  "int " + generatePCL((SimpleNode) node.jjtGetChild(0)) + " = " + generatePCL((SimpleNode) node.jjtGetChild(1));
@@ -181,15 +184,17 @@ public class PCLCompiler {
             case "DimStatement":
                 String toReturn = "";
                 if (!globalVariables.containsKey(generatePCL((SimpleNode) node.jjtGetChild(0)))) {
-                    
-                    variableType = getChildVariableType(node);
+                    variableType = getChildVariableType((SimpleNode) node.jjtGetChild(0));
                     switch (variableType) {
                         case INT:
                             toReturn = "int " + generatePCL((SimpleNode) node.jjtGetChild(0));
+                            break;
                         case STRING:
                             toReturn =  "char *" + generatePCL((SimpleNode) node.jjtGetChild(0));
+                            break;
                         case DOUBLE:
                             toReturn =  "double " + generatePCL((SimpleNode) node.jjtGetChild(0));
+                            break;
                     }
                     toReturn += ";";
                     globalVariables.put(getVariableNameExtentionString(node), toReturn);
@@ -287,24 +292,7 @@ public class PCLCompiler {
                     return node.jjtGetValue().toString().substring(0, node.jjtGetValue().toString().length() - 1) + "_string";
             }
         }
-        for (int i = 0; i < node.jjtGetNumChildren(); i++) {
-            if (node.jjtGetChild(i).toString().equals("Variable")) {
-                SimpleNode child = (SimpleNode) node.jjtGetChild(i);
-                char lastChar = child.jjtGetValue().toString().charAt(child.jjtGetValue().toString().length() - 1);
-                switch(lastChar) {
-                    case '%':
-                        return child.jjtGetValue().toString().substring(0, child.jjtGetValue().toString().length() - 1) + "_int";
-                    case '#':
-                        return child.jjtGetValue().toString().substring(0, child.jjtGetValue().toString().length() - 1) + "_double";
-                    case '$':
-                        return child.jjtGetValue().toString().substring(0, child.jjtGetValue().toString().length() - 1) + "_string";
-                }
-            }
-            else {
-                return getVariableNameExtentionString((SimpleNode) node.jjtGetChild(i));
-            }
-        }
-        return null;
+        return getVariableNameExtentionString((SimpleNode) node.jjtGetChild(0));
     }
 
     static VariableType getChildVariableType(SimpleNode node) {
@@ -329,18 +317,9 @@ public class PCLCompiler {
     }
 
     String PrintStatement(SimpleNode printStatement) {
-        String toReturn = "printf(";
+        String toReturn = "printf(\"%s\\n\", ";
 
-        if (printStatement.jjtGetChild(0).toString().equals("String")) {
-            String string = ((SimpleNode) printStatement.jjtGetChild(0)).jjtGetValue().toString();
-
-            string = string.replaceAll("\"", "");
-
-            toReturn += "\"" + string + "\\n\"";
-        } else {
-            toReturn += generatePCL((SimpleNode) printStatement.jjtGetChild(0));
-            toReturn += ");\nprintf(\"\\n\"";
-        }
+        toReturn += generatePCL((SimpleNode) printStatement.jjtGetChild(0));
 
         toReturn += ")";
         return toReturn;

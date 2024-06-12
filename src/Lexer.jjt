@@ -231,7 +231,7 @@ void ComparisonOperator() #ComparisonOperator : {
 void VariableAccess() #VariableAccess : {
 }
 {
-    (Variable() | ArrayCall())
+    ( ArrayCall() | Variable() )
 }
 
 void ArrayCall() #ArrayCall : {
