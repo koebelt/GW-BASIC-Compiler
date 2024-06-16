@@ -5,10 +5,9 @@ options {
 
 PARSER_BEGIN(GWBasicParser)
 
-import nodes.IntegerNode;import java.util.Stack;
+import java.util.Stack;
 import java.util.HashSet;
 import java.util.HashMap;
-import nodes.*;
 
 public class GWBasicParser {
     private Stack<String> whileStack = new Stack<String>();
