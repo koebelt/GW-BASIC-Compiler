@@ -5,7 +5,14 @@ options {
 
 PARSER_BEGIN(GWBasicParser)
 
+import java.util.Stack;
+import java.util.HashSet;
+
 public class GWBasicParser {
+    private Stack<String> whileStack = new Stack<String>();
+    private HashSet<String> validLineNumbers = new HashSet<String>();
+    private HashSet<String> unresolvedJumps = new HashSet<String>();
+
     public static void main(String[] args) throws ParseException {
         GWBasicParser parser = new GWBasicParser(System.in);
         SimpleNode root = parser.Program();
@@ -36,6 +43,20 @@ public class GWBasicParser {
             return Integer.parseInt(node.value.toString());
         } else {
             return getLineNumber((SimpleNode) node.jjtGetParent());
+        }
+    }
+
+    public void checkUnresolvedWhile() throws ParseException {
+        if(!whileStack.isEmpty()) {
+            throw new ParseException("Code contains " + whileStack.size() + " unclosed while-loops");
+        }
+    }
+
+    public void checkUnclosedForLoops() throws ParseException {
+        for (String lineNumber : unresolvedJumps) {
+            if (!validLineNumbers.contains(lineNumber)) {
+                throw new ParseException("Jump to invalid line number: " + lineNumber);
+            }
         }
     }
 }
@@ -90,12 +111,24 @@ TOKEN : {
 
 SimpleNode Program() #Program : {}
 {
-    (( Line() )* ) <EOF> { return jjtThis; }
+    (( Line() )* ) <EOF>
+    {
+        checkUnresolvedWhile();
+        checkUnclosedForLoops();
+        return jjtThis;
+    }
 }
 
 void Line() #Line : {Token t;}
 {
-    t=<NUMBER> Statement() (<EOL> | <EOF>)? { jjtThis.jjtSetValue(t.image); }
+    t=<NUMBER> Statement() (<EOL> | <EOF>)?
+    {
+    if(validLineNumbers.contains(t.image)) {
+        throw new ParseException ("Linenumber " + t.image + " appears twice in the code");
+    }
+    validLineNumbers.add(t.image);
+    jjtThis.jjtSetValue(t.image);
+}
 }
 
 void Statement() #Statement : {}
@@ -131,10 +164,16 @@ void DimStatement() #DimStatement : {}
     <DIM> ArrayCall()
 }
 
-void GotoStatement() #GotoStatement : {
+void GotoStatement() #GotoStatement : { Token t;
 }
 {
     <GOTO> Number()
+    {
+        t=getToken(0); //Line of the JUMP
+        if (!validLineNumbers.contains(t.image)) {
+            unresolvedJumps.add(t.image);
+        }
+    }
 }
 
 void IfStatement() #IfStatement : {}
@@ -157,17 +196,30 @@ void NextStatement() #NextStatement : {
 void WhileStatement() #WhileStatement : {}
 {
     <WHILE> Condition()
+    { whileStack.push("WHILE"); }
 }
 
 void WendStatement() #WendStatement : {}
 {
     <WEND>
+    {
+        if(whileStack.isEmpty()) {
+            throw new ParseException("WEND without matching while");
+        }
+        whileStack.pop();
+    }
 }
 
-void GosubStatement() #GosubStatement : {
+void GosubStatement() #GosubStatement : { Token t;
 }
 {
     <GOSUB> Number()
+    {
+            t=getToken(0); //Line of the JUMP
+            if (!validLineNumbers.contains(t.image)) {
+                unresolvedJumps.add(t.image);
+            }
+    }
 }
 
 void ReturnStatement() #ReturnStatement : {}
@@ -278,7 +330,7 @@ void Number() #Number : {
     Token t = new Token();
 }
 {
-    t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
+    t=<NUMBER> { jjtThis.jjtSetValue(t.image);}
 }
 
 void String() #String : {
