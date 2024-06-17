@@ -11,6 +11,7 @@ import java.util.HashMap;
 
 public class GWBasicParser {
     private Stack<String> whileStack = new Stack<String>();
+    private Stack<String> forStack = new Stack<String>();
     private HashSet<String> validLineNumbers = new HashSet<String>();
     private HashSet<String> unresolvedJumps = new HashSet<String>(); //Jump where the linenumbers have not yet been read
     private HashMap<String, String> variables = new HashMap<String, String>(); //variables with types
@@ -56,11 +57,17 @@ public class GWBasicParser {
         }
     }
 
-    public void checkUnclosedForLoops() throws ParseException {
+    public void checkUnresolvedJumps() throws ParseException {
         for (String lineNumber : unresolvedJumps) {
             if (!validLineNumbers.contains(lineNumber)) {
                 throw new ParseException("Jump to invalid line number: " + lineNumber);
             }
+        }
+    }
+
+    public void checkUnresolvedFor() throws ParseException {
+        if(!forStack.isEmpty()) {
+            throw new ParseException("Code contains " + forStack.size() + " unclosed for-loops");
         }
     }
 
@@ -138,7 +145,8 @@ SimpleNode Program() #Program : {}
     (( Line() )* ) <EOF>
     {
         checkUnresolvedWhile();
-        checkUnclosedForLoops();
+        checkUnresolvedFor();
+        checkUnresolvedJumps();
         checkPotentiallyFaultyAssignments();
         return jjtThis;
     }
@@ -217,12 +225,21 @@ void ForStatement() #ForStatement : {
 }
 {
     <FOR> Assignment() <TO> Expression() (<STEP> Expression())?
+    {
+        forStack.push("FOR");
+    }
 }
 
 void NextStatement() #NextStatement : {
 }
 {
     <NEXT> Variable()
+    {
+    if(forStack.isEmpty()) {
+        throw new ParseException("NEXT without an opening FOR");
+        }
+    forStack.pop();
+    }
 }
 
 void WhileStatement() #WhileStatement : {}
@@ -314,7 +331,6 @@ void ComparisonOperator() #ComparisonOperator : {
 }
 
 void VariableAccess() #VariableAccess : {
-    Token t = new Token();
 }
 {
     ( ArrayCall() | Variable() )
@@ -353,6 +369,7 @@ void Expression() #Expression : {
 {
     Term() ( (t=<PLUS> | t=<MINUS>) Term() )*
     {
+        jjtThis.jjtSetValue(t.image);
     }
 }
 
