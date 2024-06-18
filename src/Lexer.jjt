@@ -5,7 +5,19 @@ options {
 
 PARSER_BEGIN(GWBasicParser)
 
+import java.util.Stack;
+import java.util.HashSet;
+import java.util.HashMap;
+
 public class GWBasicParser {
+    private Stack<String> whileStack = new Stack<String>();
+    private Stack<String> forStack = new Stack<String>();
+    private HashSet<String> validLineNumbers = new HashSet<String>();
+    private HashSet<String> unresolvedJumps = new HashSet<String>(); //Jump where the linenumbers have not yet been read
+    private HashMap<String, String> variables = new HashMap<String, String>(); //variables with types
+    private HashSet<String> potentiallyUnassignedVariables = new HashSet<String>(); //Variables used before assignment
+    private boolean isAssignmentVar = false; // variable |array | input
+
     public static void main(String[] args) throws ParseException {
         GWBasicParser parser = new GWBasicParser(System.in);
         SimpleNode root = parser.Program();
@@ -36,6 +48,46 @@ public class GWBasicParser {
             return Integer.parseInt(node.value.toString());
         } else {
             return getLineNumber((SimpleNode) node.jjtGetParent());
+        }
+    }
+
+    public void checkUnresolvedWhile() throws ParseException {
+        if(!whileStack.isEmpty()) {
+            throw new ParseException("Code contains " + whileStack.size() + " unclosed while-loops");
+        }
+    }
+
+    public void checkUnresolvedJumps() throws ParseException {
+        for (String lineNumber : unresolvedJumps) {
+            if (!validLineNumbers.contains(lineNumber)) {
+                throw new ParseException("Jump to invalid line number: " + lineNumber);
+            }
+        }
+    }
+
+    public void checkUnresolvedFor() throws ParseException {
+        if(!forStack.isEmpty()) {
+            throw new ParseException("Code contains " + forStack.size() + " unclosed for-loops");
+        }
+    }
+
+    public String getType(String variableName) throws ParseException {
+        if(variableName.endsWith("$")) {
+            return "STRING";
+        } else if (variableName.endsWith("%")) {
+            return "INTEGER";
+        } else if (variableName.endsWith("#")) {
+            return "DOUBLE";
+        } else {
+            throw new ParseException("Invalid Type of variable " + variableName);
+        }
+    }
+
+    public void checkPotentiallyFaultyAssignments() throws ParseException {
+        for(String key : potentiallyUnassignedVariables) {
+            if(variables.containsKey(key) == false) {
+                throw new ParseException("Variable " + key + " has not been initialized");
+            }
         }
     }
 }
@@ -90,12 +142,26 @@ TOKEN : {
 
 SimpleNode Program() #Program : {}
 {
-    (( Line() )* ) <EOF> { return jjtThis; }
+    (( Line() )* ) <EOF>
+    {
+        checkUnresolvedWhile();
+        checkUnresolvedFor();
+        checkUnresolvedJumps();
+        checkPotentiallyFaultyAssignments();
+        return jjtThis;
+    }
 }
 
 void Line() #Line : {Token t;}
 {
-    t=<NUMBER> Statement() (<EOL> | <EOF>)? { jjtThis.jjtSetValue(t.image); }
+    t=<NUMBER> Statement() (<EOL> | <EOF>)?
+    {
+    if(validLineNumbers.contains(t.image)) {
+        throw new ParseException ("Linenumber " + t.image + " appears twice in the code");
+    }
+    validLineNumbers.add(t.image);
+    jjtThis.jjtSetValue(t.image);
+}
 }
 
 void Statement() #Statement : {}
@@ -121,20 +187,33 @@ void Statement() #Statement : {}
 }
 
 void Assignment() #Assignment : {
+    isAssignmentVar = true;
 }
 {
     VariableAccess() <EQ> Expression()
+    {
+    }
 }
 
-void DimStatement() #DimStatement : {}
+void DimStatement() #DimStatement : {
+    isAssignmentVar = true;
+}
 {
     <DIM> ArrayCall()
+    {
+    }
 }
 
-void GotoStatement() #GotoStatement : {
+void GotoStatement() #GotoStatement : { Token t;
 }
 {
     <GOTO> Number()
+    {
+        t=getToken(0); //Line of the JUMP
+        if (!validLineNumbers.contains(t.image)) {
+            unresolvedJumps.add(t.image);
+        }
+    }
 }
 
 void IfStatement() #IfStatement : {}
@@ -146,28 +225,50 @@ void ForStatement() #ForStatement : {
 }
 {
     <FOR> Assignment() <TO> Expression() (<STEP> Expression())?
+    {
+        forStack.push("FOR");
+    }
 }
 
 void NextStatement() #NextStatement : {
 }
 {
     <NEXT> Variable()
+    {
+    if(forStack.isEmpty()) {
+        throw new ParseException("NEXT without an opening FOR");
+        }
+    forStack.pop();
+    }
 }
 
 void WhileStatement() #WhileStatement : {}
 {
     <WHILE> Condition()
+    { whileStack.push("WHILE"); }
 }
 
 void WendStatement() #WendStatement : {}
 {
     <WEND>
+    {
+        if(whileStack.isEmpty()) {
+            throw new ParseException("WEND without matching while");
+        }
+        whileStack.pop();
+    }
 }
 
-void GosubStatement() #GosubStatement : {
+void GosubStatement() #GosubStatement : { Token t;
 }
 {
     <GOSUB> Number()
+    {
+            t=getToken(0); //Line of the JUMP
+            if (!validLineNumbers.contains(t.image)) {
+                unresolvedJumps.add(t.image);
+            }
+    }
 }
 
 void ReturnStatement() #ReturnStatement : {}
@@ -193,6 +294,7 @@ void PrintItem() #PrintItem : {
 }
 
 void InputStatement() #InputStatement : {
+    isAssignmentVar = true;
 }
 {
     <INPUT> (String() <COMMA>)? VariableAccess()
@@ -232,6 +334,8 @@ void VariableAccess() #VariableAccess : {
 }
 {
     ( ArrayCall() | Variable() )
+    {
+    }
 }
 
 void ArrayCall() #ArrayCall : {
@@ -244,14 +348,29 @@ void Variable() #Variable : {
     Token t = new Token();
 }
 {
-    t=<VARIABLE> { jjtThis.jjtSetValue(t.image); }
+    t=<VARIABLE>
+    {
+        if (!isAssignmentVar) {
+            if(!variables.containsKey(t.image)) {
+                potentiallyUnassignedVariables.add(t.image);
+            }
+        }
+        if (isAssignmentVar) {
+            variables.put(t.image, getType(t.image));
+        }
+        isAssignmentVar = false;
+        jjtThis.jjtSetValue(t.image);
+    }
 }
 
 void Expression() #Expression : {
     Token t = new Token();
 }
 {
-    Term() ( (t=<PLUS> | t=<MINUS>) Term() )* { jjtThis.jjtSetValue(t.image); }
+    Term() ( (t=<PLUS> | t=<MINUS>) Term() )*
+    {
+        jjtThis.jjtSetValue(t.image);
+    }
 }
 
 void Term() #Term : {
@@ -278,7 +397,9 @@ void Number() #Number : {
     Token t = new Token();
 }
 {
-    t=<NUMBER> { jjtThis.jjtSetValue(t.image); }
+    t=<NUMBER> {
+    jjtThis.jjtSetValue(t.image);
+}
 }
 
 void String() #String : {
