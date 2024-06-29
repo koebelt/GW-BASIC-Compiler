@@ -9,6 +9,10 @@
     <target name="clean">
         <delete dir="${build.dir}"/>
         <!-- Delete all .out and all .c files -->
+        <delete>
+            <fileset dir="." includes="**/*.out"/>
+            <fileset dir="." includes="**/*.c"/>
+        </delete>
     </target>
 
     <target name="init">
@@ -57,7 +61,6 @@
             <arg value="output.c"/>
             <arg value="-o"/>
             <arg value="${output.file}"/>
-            <arg value="-g"/>
         </exec>
     </target>
 
