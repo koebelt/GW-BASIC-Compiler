@@ -1,4 +1,3 @@
-
 # Initialisation
 
 Download the latest version of JavaCC and rename it javacc.jar;
@@ -15,6 +14,11 @@ ant run -Dfile=<nameOfFileToParse>
 
 This command should compile then run the program
 
+## Run + Compile the C output:
+
+```bash
+ant all -Dfile=<nameOfFileToParse>
+```
 
 # Compile Jar
 
@@ -23,3 +27,12 @@ ant jar
 ```
 
 This command should compile the project into a JAR package
+
+# Clean
+
+```bash
+ant clean
+```
+
+This command should clean the project
+

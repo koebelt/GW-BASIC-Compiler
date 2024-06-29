@@ -4,9 +4,11 @@
     <property name="lib.dir" value="lib"/>
     <property name="javacc.jar" value="${lib.dir}/javacc.jar"/>
     <property name="generated.dir" value="${build.dir}/generated"/>
+    <property name="output.file" value="output.out"/>
 
     <target name="clean">
         <delete dir="${build.dir}"/>
+        <!-- Delete all .out and all .c files -->
     </target>
 
     <target name="init">
@@ -50,15 +52,15 @@
         </java>
     </target>
 
-    <target name="test" depends="run">
+    <target name="compile-c" depends="run">
         <exec executable="gcc">
             <arg value="output.c"/>
             <arg value="-o"/>
-            <arg value="output"/>
+            <arg value="${output.file}"/>
             <arg value="-g"/>
         </exec>
     </target>
 
 
-    <target name="all" depends="clean, jar, run"/>
+    <target name="all" depends="clean, jar, run, compile-c"/>
 </project>
